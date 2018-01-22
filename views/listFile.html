@@ -40,11 +40,38 @@
     <script src="/static/js/jquery-2.1.3.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
     <script>
+        //console.log()
         var url = "/files";
         var dir = "/file"
         $(function () {
-            ListFile(url);
+            clickFileorDir("dir", url, "");
         });
+
+        window.onpopstate = function(e){
+            if(history.state){
+                var state = e.state;
+                console.log("state: " + state);
+                ListFile(state);
+            }
+        }
+        function clickFileorDir(type, path, name){
+            var e = window.event || arguments[0]
+            if(type == "file"){
+                return true;
+            }
+            loadFileList(path, name);
+            e.preventDefault();
+        }
+
+        function loadFileList(path, name){
+            if(name != ""){
+                path = path + "/" + name;
+            }
+            window.history.pushState(path, "", path);
+            //console.log("path: " + path);
+            ListFile(path);
+        }
+
         function DelFile() {
             var filename = new Array();
             $(".mycheckbox").each(function () {
@@ -78,6 +105,9 @@
                 dataType: "json",//返回json格式的数据
                 url: path,//要访问的后台地址
                 cache: false,
+                beforeSend: function(request){
+                    request.setRequestHeader("isAjax", "true")
+                },
                 success: function (msg) {//msg为返回的数据，在这里做数据绑定
                     // console.log(msg);
                     $("#mytemplate").show();
@@ -85,18 +115,7 @@
                         var row = $("#mytemplate").clone();
                         row.addClass("myrow");
                         row.find("#NO").text(i);
-                        var relpath = url;
-                        if(n.path != ""){
-                            relpath += "/" + n.path;
-                            dir += "/" + n.path;
-                        }
-                        console.log(relpath);
-                        console.log(dir);
-                        if(n.type == "file"){
-                            row.find("#Name").html("<a href='" + dir + "/" + n.name + "'>" + n.name + "</a>");
-                        }else{
-                            row.find("#Name").html("<a onclick=ListFile('" + relpath + "/" + n.name + "')>" + n.name + "</a>");
-                        }
+                        row.find("#Name").html("<a onclick=clickFileorDir('" + n.type + "','" + path + "','" + n.name + "')" + " href='/" + n.path + "/" + n.name + "' target='_blank'>" + n.name + "</a>")
                         row.find("#Size").text(n.size);
                         row.find("#Operation").html("<input class='mycheckbox'type='checkbox' value='" + i + "'>");
                         row.appendTo("#datas");//添加到模板的容器中

@@ -10,10 +10,11 @@ import(
 	"strconv"
 	"io/ioutil"
 	"log"
-	//"fmt"
+	//"strings"
 )
 
 var directory string = "./file"
+var url string = "/files"
 
 type User struct{
 	Username string `json:"username" form:"username" query:"username"`
@@ -59,26 +60,38 @@ func listFile(c echo.Context) error{
 }
 
 func listAllFiles(c echo.Context) error{
-	listOfFiles := make([]File, 0)
-	localPath := filepath.Join(directory, c.Param("path"))
-	log.Println(localPath)
-	dir_list, e := ioutil.ReadDir(localPath)
-	if e != nil{
-		log.Fatal("read dir error")
-	}
-	var t File
-	for _, v := range dir_list{
-		t.Name = v.Name()
-		t.Size = strconv.FormatFloat(float64(v.Size())/1024, 'f', 4, 64)
-		if v.IsDir(){
-			t.Type = "dir"
+	isAjax := c.Request().Header.Get("isAjax")
+	if isAjax == "true"{
+		url_t := c.Request().URL.EscapedPath()
+		//log.Println(url_t)
+		var localPath string
+		listOfFiles := make([]File, 0)
+		if len(url_t) > len(url){ 
+			localPath = filepath.Join(directory,  url_t[len(url) : len(url_t)])
 		}else{
-			t.Type = "file"
+			localPath = filepath.Join(directory, "")
 		}
-		t.Path = c.Param("path")
-		listOfFiles = append(listOfFiles, t)
+		dir_list, e := ioutil.ReadDir(localPath)
+		if e != nil{
+			log.Fatal("read dir error")
+		}
+		var t File
+		for _, v := range dir_list{
+			t.Name = v.Name()
+			t.Size = strconv.FormatFloat(float64(v.Size())/1024, 'f', 4, 64)
+			if v.IsDir(){
+				t.Type = "dir"
+			}else{
+				t.Type = "file"
+			}
+			t.Path = localPath
+			listOfFiles = append(listOfFiles, t)
+		}
+		//log.Println(listOfFiles)
+		return c.JSON(http.StatusOK, listOfFiles)
+	}else{
+		return c.Render(http.StatusOK, "listFile", d)
 	}
-	return c.JSON(http.StatusOK, listOfFiles)
 }
 
 func main(){
@@ -92,6 +105,6 @@ func main(){
 	e.GET("/index", index)
 	e.GET("/listFile", listFile)
 	e.GET("/files", listAllFiles)
-	e.GET("/files/:path", listAllFiles)
+	e.GET("/files/*", listAllFiles)
 	e.Logger.Fatal(e.Start(":8000"))
 }
