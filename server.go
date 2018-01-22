@@ -6,8 +6,10 @@ import(
 	"html/template"
 	"io"
 	"path/filepath"
-	"os"
+	// "os"
 	"strconv"
+	"io/ioutil"
+	"log"
 	//"fmt"
 )
 
@@ -22,7 +24,7 @@ type Template struct{
 	templates *template.Template
 }
 
-type Title struct{
+type ConfigHtml struct{
 	IndexTitle string
 	ListFileTitle string
 	UploadTitle string
@@ -31,9 +33,11 @@ type Title struct{
 type File struct{
 	Name string `json:"name"`
 	Size string `json:"size"`
+	Type string `json:"type"`
+	Path string `json:"path"`
 }
 
-var d = Title{
+var d = ConfigHtml{
 	IndexTitle: "fileServer",
 	ListFileTitle: "listFile",
 	UploadTitle: "uploadfile",
@@ -56,25 +60,31 @@ func listFile(c echo.Context) error{
 
 func listAllFiles(c echo.Context) error{
 	listOfFiles := make([]File, 0)
-	filepath.Walk(directory, func(path string, f os.FileInfo, err error) error{
-		if f == nil{
-			return err
+	localPath := filepath.Join(directory, c.Param("path"))
+	log.Println(localPath)
+	dir_list, e := ioutil.ReadDir(localPath)
+	if e != nil{
+		log.Fatal("read dir error")
+	}
+	var t File
+	for _, v := range dir_list{
+		t.Name = v.Name()
+		t.Size = strconv.FormatFloat(float64(v.Size())/1024, 'f', 4, 64)
+		if v.IsDir(){
+			t.Type = "dir"
+		}else{
+			t.Type = "file"
 		}
-		if f.IsDir(){
-			return nil
-		}
-		var t File
-		t.Name = f.Name()
-		t.Size = strconv.FormatInt(f.Size()/1024, 10)
+		t.Path = c.Param("path")
 		listOfFiles = append(listOfFiles, t)
-		return nil
-	})
+	}
 	return c.JSON(http.StatusOK, listOfFiles)
 }
 
 func main(){
 	e := echo.New()
 	e.Static("/static", "assets")
+	e.Static("/file", "file")
 	t := &Template{
 		templates : template.Must(template.ParseGlob("views/*.html")),
 	}
@@ -82,5 +92,6 @@ func main(){
 	e.GET("/index", index)
 	e.GET("/listFile", listFile)
 	e.GET("/files", listAllFiles)
+	e.GET("/files/:path", listAllFiles)
 	e.Logger.Fatal(e.Start(":8000"))
 }
