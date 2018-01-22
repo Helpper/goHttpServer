@@ -55,9 +55,9 @@ func index(c echo.Context) error{
 	return c.Render(http.StatusOK, "index", d)
 }
 
-func listFile(c echo.Context) error{
-	return c.Render(http.StatusOK, "listFile", d)
-}
+// func listFile(c echo.Context) error{
+// 	return c.Render(http.StatusOK, "listFile", d)
+// }
 
 func listAllFiles(c echo.Context) error{
 	isAjax := c.Request().Header.Get("isAjax")
@@ -96,6 +96,7 @@ func listAllFiles(c echo.Context) error{
 
 func main(){
 	e := echo.New()
+	//配置静态文件路径
 	e.Static("/static", "assets")
 	e.Static("/file", "file")
 	t := &Template{
@@ -103,7 +104,7 @@ func main(){
 	}
 	e.Renderer = t
 	e.GET("/index", index)
-	e.GET("/listFile", listFile)
+	// e.GET("/listFile", listFile)
 	e.GET("/files", listAllFiles)
 	e.GET("/files/*", listAllFiles)
 	e.Logger.Fatal(e.Start(":8000"))
