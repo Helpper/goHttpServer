@@ -17,9 +17,9 @@
                     <thead>
                     <tr>
                         <th>#</th>
-                        <th>名称</th>
-                        <th>大小(KB)</th>
-                        <th>选择</th>
+                        <th>name</th>
+                        <th>size(KB)</th>
+                        <th>choose</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -33,12 +33,12 @@
                 </table>
             </div>
         </div>
-        <button type="button" class="btn btn-danger" onclick="DelFile()">删除选中的文件</button>
     </div>
     
     <!-- /container -->
     <script src="/static/js/jquery-2.1.3.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/index.js"></script>
     <script>
         //console.log()
         var url = "/files";
@@ -46,109 +46,6 @@
         $(function () {
             clickFileorDir("dir", url, "");
         });
-
-        window.onpopstate = function(e){
-            if(history.state){
-                var state = e.state;
-                console.log("state: " + state);
-                ListFile(state);
-            }
-        }
-        function clickFileorDir(type, path, name){
-            var e = window.event || arguments[0]
-            if(type == "file"){
-                return true;
-            }
-            loadFileList(path, name);
-            e.preventDefault();
-        }
-
-        function loadFileList(path, name){
-            if(name != ""){
-                path = path + "/" + name;
-            }
-            window.history.pushState(path, "", path);
-            //console.log("path: " + path);
-            ListFile(path);
-        }
-
-        function DelFile() {
-            var filename = new Array();
-            $(".mycheckbox").each(function () {
-                if ($(this).is(':checked')) {
-                    //   console.log($(this).val())
-                    filename.push($(this).parent().prev().prev().text());
-                }
-            });
-            if (filename.length < 1) return;   //没有选择时退出
-            var o = new Object();
-            o.filename = filename;
-            $.ajax({
-                type: 'DELETE',
-                url: "/file",
-                data: JSON.stringify(o),
-                contentType: 'application/json',
-                success: function (msg) {
-                    // console.log(msg);
-                    ListFile();
-                },
-                error: function () {
-                    alert("删除文件出错");
-                }
-            });
-        }
-
-        function ListFile(path) {
-            $(".myrow").remove();
-            $.ajax({
-                type: "GET",//使用get方法访问后台
-                dataType: "json",//返回json格式的数据
-                url: path,//要访问的后台地址
-                cache: false,
-                beforeSend: function(request){
-                    request.setRequestHeader("isAjax", "true")
-                },
-                success: function (msg) {//msg为返回的数据，在这里做数据绑定
-                    // console.log(msg);
-                    $("#mytemplate").show();
-                    $.each(msg, function (i, n) {
-                        var row = $("#mytemplate").clone();
-                        row.addClass("myrow");
-                        row.find("#NO").text(i);
-                        row.find("#Name").html("<a onclick=clickFileorDir('" + n.type + "','" + path + "','" + n.name + "')" + " href='/" + n.path + "/" + n.name + "' target='_blank'>" + n.name + "</a>")
-                        row.find("#Size").text(n.size);
-                        row.find("#Operation").html("<input class='mycheckbox'type='checkbox' value='" + i + "'>");
-                        row.appendTo("#datas");//添加到模板的容器中
-                    });
-                    $("#mytemplate").hide();   //隐藏模板
-                },
-                error: function () {
-                    alert("连接服务器错误");
-                }
-            });
-        }
-        function UpLoadFile() {
-            // FormData 对象
-            var form = new FormData(document.forms.namedItem("uploadForm"));
-            //form.append("name", "dd");                        // 可以增加表单数据
-            // XMLHttpRequest 对象
-            var xhr = new XMLHttpRequest();
-            xhr.open("post", "/file", true);
-            // xhr.upload 这是html5新增的api,储存了上传过程中的信息
-            xhr.upload.onprogress = function (ev) {
-                var percent = 0;
-                if (ev.lengthComputable) {
-                    percent = 100 * ev.loaded / ev.total;
-                    $("#myprogress").width(percent + "%");
-                }
-            };
-            xhr.onload = function (oEvent) {
-                if (xhr.status == 200) {
-                    ListFile();
-                }
-            }
-            xhr.send(form);
-        }
     </script>
     </body>
     
